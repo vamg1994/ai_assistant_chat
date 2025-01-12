@@ -26,6 +26,8 @@ def initialize_session_state() -> None:
         st.session_state.thread_id = create_thread()
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "selected_assistant" not in st.session_state:
+        st.session_state.selected_assistant = "ASSISTANT_ID"  # Default assistant
 
 def get_token_count(messages: list) -> int:
     """
@@ -108,9 +110,20 @@ def main():
     # Page header
     st.header("🤖 AI Assistant")
 
+    # Assistant selection
+    assistant_options = {
+        "Assistant 1": "ASSISTANT_ID",
+        "Assistant 2": "ASSISTANT_ID2"
+    }
+    selected = st.sidebar.selectbox(
+        "Select Assistant",
+        options=list(assistant_options.keys())
+    )
+    st.session_state.selected_assistant = assistant_options[selected]
+
     # Load assistant details
     with st.spinner("Loading assistant..."):
-        assistant_details = get_assistant_details()
+        assistant_details = get_assistant_details(st.session_state.selected_assistant)
         if not assistant_details:
             st.error("Failed to load assistant. Please check your configuration.")
             return

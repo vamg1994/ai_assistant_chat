@@ -3,31 +3,45 @@ from openai import OpenAI
 from typing import Dict, List
 import streamlit as st
 import time
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def init_openai_client() -> OpenAI:
     """Initialize OpenAI client with API key from environment variables."""
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        st.error("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable.")
+        st.error("OpenAI API key not found. Please check your .env file.")
         st.stop()
     return OpenAI(api_key=api_key)
 
-def get_assistant_details() -> Dict:
-    """Fetch detailed information about the specific assistant."""
+def get_assistant_details(assistant_id: str = "ASSISTANT_ID") -> dict:
+    """
+    Get assistant details from OpenAI.
+    Args:
+        assistant_id (str): The ID of the assistant to use
+    Returns:
+        dict: Assistant details
+    """
     try:
         client = init_openai_client()
-        assistant = client.beta.assistants.retrieve("asst_JfsxOBqwRmttp5R8ePHJhZeO")
+        assistant_id_value = os.getenv(assistant_id)
+        
+        if not assistant_id_value:
+            st.error(f"Assistant ID not found for {assistant_id}. Please check your .env file.")
+            st.write(f"Available environment variables: {os.environ.keys()}")  # Debug line
+            return None
+            
+        assistant = client.beta.assistants.retrieve(assistant_id_value)
         return {
-            "id": assistant.id,
-            "name": assistant.name,
-            "model": assistant.model,
-            "description": assistant.description,
-            "instructions": assistant.instructions,
-            "tools": [tool.type for tool in assistant.tools]
+            'name': assistant.name,
+            'model': assistant.model,
+            'tools': [tool.type for tool in assistant.tools]
         }
     except Exception as e:
-        st.error(f"Error fetching assistant details: {str(e)}")
-        return {}
+        st.error(f"Error getting assistant details: {e}")
+        return None
 
 def create_thread() -> str:
     """Create a new thread for the conversation."""
@@ -51,10 +65,10 @@ def send_message(thread_id: str, user_message: str) -> List[Dict]:
             content=user_message
         )
 
-        # Run the assistant
+        # Run the assistant using the selected assistant ID from session state
         run = client.beta.threads.runs.create(
             thread_id=thread_id,
-            assistant_id=os.getenv("ASSISTANT_ID")
+            assistant_id=os.getenv(st.session_state.selected_assistant)
         )
 
         # Wait for the run to complete with timeout
