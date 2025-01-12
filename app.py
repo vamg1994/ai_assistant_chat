@@ -10,11 +10,18 @@ logger = logging.getLogger()
 logging.basicConfig(encoding="UTF-8", level=logging.INFO)
 
 def log_feedback(icon):
-    """Log user feedback for the last conversation."""
+    """Log user feedback and update counters."""
     st.toast("Thanks for your feedback!", icon="👌")
     last_messages = json.dumps(st.session_state.messages[-2:])
     activity = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: "
-    activity += f"{'positive' if icon == '👍' else 'negative'}: {last_messages}"
+    
+    if icon == "👍":
+        st.session_state.positive_feedback += 1
+        activity += f"positive: {last_messages}"
+    else:
+        st.session_state.negative_feedback += 1
+        activity += f"negative: {last_messages}"
+    
     logger.info(activity)
 
 def initialize_chat_state():
@@ -28,7 +35,7 @@ def initialize_chat_state():
 
 def display_chat_options():
     """Display chat control options and information."""
-    cols = st.columns([7, 19.4, 19.3, 9, 8.6, 8.6, 28.1])
+    cols = st.columns([7, 19.4, 19.3, 54.3])  # Adjusted column widths
     
     with cols[1]:
         json_messages = json.dumps(st.session_state.messages).encode("utf-8")
@@ -46,19 +53,6 @@ def display_chat_options():
             st.rerun()
             
     with cols[3]:
-        if st.button("🔁"):
-            st.session_state.rerun = True
-            st.rerun()
-            
-    with cols[4]:
-        if st.button("👍"):
-            log_feedback("👍")
-            
-    with cols[5]:
-        if st.button("👎"):
-            log_feedback("👎")
-            
-    with cols[6]:
         enc = tiktoken.get_encoding("cl100k_base")
         tokenized_text = enc.encode(" ".join([msg["content"] for msg in st.session_state.messages]))
         label = f"💬 {len(tokenized_text)} tokens"
