@@ -95,6 +95,33 @@ def display_chat_interface() -> None:
             ):
                 st.write(message["content"])
 
+def handle_assistant_error(thread_id, user_message):
+    """
+    Handle errors when communicating with the assistant.
+    Provides fallback behavior when the assistant fails to respond.
+    
+    Args:
+        thread_id (str): The current thread ID
+        user_message (str): The user's message that caused the error
+        
+    Returns:
+        list: Updated messages list with error notification
+    """
+    # Log the error
+    logger.error(f"Assistant failed to process message: {user_message}")
+    
+    # Add user message to the conversation
+    st.session_state.messages.append({"role": "user", "content": user_message})
+    
+    # Add error message from assistant
+    error_message = {
+        "role": "assistant", 
+        "content": "I'm sorry, I encountered an error while processing your request. This might happen when retrieving information from my knowledge base. Could you try rephrasing your question or asking something else?"
+    }
+    st.session_state.messages.append(error_message)
+    
+    return st.session_state.messages
+
 def main():
     """Main application function."""
     # Page configuration
@@ -142,20 +169,39 @@ def main():
 
     # Chat interface
     with chat_col:
+        # Chat input at the top
+        user_message = st.chat_input("Type your message here...")
+        
+        # Processing spinner container - placed between input and chat
+        spinner_container = st.empty()
+        
         if st.session_state.messages:
             display_chat_controls()
         
         display_chat_interface()
-
-        # Chat input
-        user_message = st.chat_input("Type your message here...")
         
         if user_message and st.session_state.thread_id:
-            with st.spinner("Processing..."):
+            # Show spinner in the designated container
+            with spinner_container.container():
+                st.spinner("Processing...")
+                
+            try:
                 messages = send_message(st.session_state.thread_id, user_message)
                 if messages:
                     st.session_state.messages = messages
                     st.rerun()
+                else:
+                    # Handle case where send_message returns None or empty
+                    st.session_state.messages = handle_assistant_error(
+                        st.session_state.thread_id, user_message
+                    )
+                    st.rerun()
+            except Exception as e:
+                logger.exception(f"Error processing message: {str(e)}")
+                st.session_state.messages = handle_assistant_error(
+                    st.session_state.thread_id, user_message
+                )
+                st.rerun()
 
 if __name__ == "__main__":
     main()
