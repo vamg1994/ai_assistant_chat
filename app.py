@@ -99,8 +99,8 @@ def main():
     """Main application function."""
     # Page configuration
     st.set_page_config(
-        page_title="AI Assistant",
-        page_icon="🤖",
+        page_title="Legal AI Assistant",
+        page_icon="⚖️",
         layout="wide"
     )
 
@@ -108,7 +108,7 @@ def main():
     initialize_session_state()
 
     # Page header
-    st.header("🤖 AI Assistant")
+    st.header("⚖️ Legal AI Assistant")
 
     # Assistant selection
     assistant_options = {
